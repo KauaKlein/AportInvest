@@ -66,6 +66,10 @@ public class Aporte {
 
     private LocalDateTime atualizadoEm;
 
+    @ManyToOne
+    @JoinColumn(name = "usuario_id")
+    private Usuario usuario;
+
     @PrePersist
     protected void onCreate() {
         criadoEm = LocalDateTime.now();

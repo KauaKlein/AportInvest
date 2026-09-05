@@ -21,8 +21,11 @@ public class AporteController {
     private final AporteService aporteService;
 
     @GetMapping
-    public ResponseEntity<List<Aporte>> listarTodos() {
-        return ResponseEntity.ok(aporteService.listarTodos());
+    public ResponseEntity<List<Aporte>> listarTodos(@RequestParam(required = false) Long usuarioId) {
+        if (usuarioId != null) {
+            return ResponseEntity.ok(aporteService.listarPorUsuario(usuarioId));
+        }
+        return ResponseEntity.ok(List.of());
     }
 
     @GetMapping("/{id}")

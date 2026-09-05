@@ -19,6 +19,8 @@ public interface AporteRepository extends JpaRepository<Aporte, Long> {
 
     List<Aporte> findByNomeContainingIgnoreCase(String nome);
 
+    List<Aporte> findByUsuarioId(Long usuarioId);
+
     @org.springframework.data.jpa.repository.Query("SELECT SUM(a.valorAportado) FROM Aporte a")
     java.math.BigDecimal sumValorAportado();
 

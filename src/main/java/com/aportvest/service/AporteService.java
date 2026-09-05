@@ -67,4 +67,8 @@ public class AporteService {
         Aporte aporte = buscarPorId(id);
         aporteRepository.delete(aporte);
     }
+
+    public List<Aporte> listarPorUsuario(Long usuarioId) {
+        return aporteRepository.findByUsuarioId(usuarioId);
+    }
 }

@@ -14,7 +14,10 @@
 <body>
     <div class="layout">
         <header class="mobile-header">
-            <span class="logo">📈 Aportvest</span>
+            <div class="logo">
+                <span class="logo-badge"><i class="fas fa-chart-line"></i></span>
+                <span class="logo-text">Aport<span class="logo-accent">vest</span></span>
+            </div>
             <button class="hamburger" onclick="app.alternarMenuLateral()">
                 <i class="fas fa-bars"></i>
             </button>
@@ -24,7 +27,10 @@
 
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <h1 class="logo">📈 Aportvest</h1>
+                <div class="logo">
+                    <span class="logo-badge"><i class="fas fa-chart-line"></i></span>
+                    <span class="logo-text">Aport<span class="logo-accent">vest</span></span>
+                </div>
             </div>
             <nav class="sidebar-nav">
                 <a href="#" class="nav-item active" data-target="home">
@@ -33,68 +39,166 @@
                 <a href="#" class="nav-item" data-target="meus-ativos">
                     <span class="icon"><i class="fas fa-chart-pie"></i></span> Meus Ativos
                 </a>
+                <a href="#" class="nav-item" data-target="planejador">
+                    <span class="icon"><i class="fas fa-sliders-h"></i></span> Controle de Gastos
+                </a>
+                <a href="#" class="nav-item" id="nav-login" data-target="login">
+                    <span class="icon"><i class="fas fa-sign-in-alt"></i></span> Entrar
+                </a>
             </nav>
+            <div id="usuario-logado-box" style="display: none; padding: 16px; border-top: 1px solid rgba(255,255,255,0.08); margin-top: auto;">
+                <div style="font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 6px;" id="usuario-logado-nome">Olá, Usuário</div>
+                <a href="#" onclick="app.deslogar()" style="color: #ef4444; font-size: 12px; text-decoration: none; display: flex; align-items: center; gap: 6px;">
+                    <i class="fas fa-sign-out-alt"></i> Sair da conta
+                </a>
+            </div>
         </aside>
 
         <main class="main-content">
             <section id="home" class="section active">
-                <div class="section-header">
-                    <h2>Home</h2>
-                </div>
-
-                <div class="dashboard-summary">
-                    <div class="summary-card">
-                        <div class="summary-icon blue"><i class="fas fa-wallet"></i></div>
-                        <div>
-                            <h3>Total Investido</h3>
-                            <p id="dash-total-investido" class="text-blue">R$ 0,00</p>
-                        </div>
+                <div class="hero-banner">
+                    <div>
+                        <h3>Portal de Mercados & Notícias</h3>
+                        <p>Acompanhe os principais índices econômicos, cotações em tempo real e os destaques do mercado financeiro.</p>
                     </div>
-                    <div class="summary-card">
-                        <div class="summary-icon green"><i class="fas fa-chart-line"></i></div>
-                        <div>
-                            <h3>Valor Atual</h3>
-                            <p id="dash-valor-atual" class="text-green">R$ 0,00</p>
-                        </div>
-                    </div>
-                    <div class="summary-card">
-                        <div class="summary-icon purple"><i class="fas fa-percentage"></i></div>
-                        <div>
-                            <h3>Rentabilidade</h3>
-                            <p id="dash-rentabilidade" class="text-purple">0,00%</p>
-                        </div>
-                    </div>
-                    <div class="summary-card">
-                        <div class="summary-icon orange"><i class="fas fa-coins"></i></div>
-                        <div>
-                            <h3>Nº de Ativos</h3>
-                            <p id="dash-num-ativos" class="text-orange">0</p>
-                        </div>
+                    <div>
+                        <button class="btn btn-primary" onclick="app.navegarPara(app.estado.usuario ? 'meus-ativos' : 'login')">
+                            <i class="fas fa-chart-line"></i> <span id="hero-btn-text">Minha Carteira</span>
+                        </button>
                     </div>
                 </div>
 
-                <div class="home-grid">
+                <div class="market-ticker-grid">
+                    <div class="ticker-card">
+                        <span class="ticker-name">IBOVESPA</span>
+                        <span class="ticker-value">134.820 pts</span>
+                        <span class="ticker-change up"><i class="fas fa-arrow-up"></i> +0.92%</span>
+                    </div>
+                    <div class="ticker-card">
+                        <span class="ticker-name">DÓLAR (USD)</span>
+                        <span class="ticker-value">R$ 5,44</span>
+                        <span class="ticker-change down"><i class="fas fa-arrow-down"></i> -0.38%</span>
+                    </div>
+                    <div class="ticker-card">
+                        <span class="ticker-name">BITCOIN</span>
+                        <span class="ticker-value">R$ 344.200</span>
+                        <span class="ticker-change up"><i class="fas fa-arrow-up"></i> +2.45%</span>
+                    </div>
+                    <div class="ticker-card">
+                        <span class="ticker-name">TAXA SELIC</span>
+                        <span class="ticker-value">10,50% a.a.</span>
+                        <span class="ticker-change neutral"><i class="fas fa-minus"></i> Estável</span>
+                    </div>
+                    <div class="ticker-card">
+                        <span class="ticker-name">IPCA (12M)</span>
+                        <span class="ticker-value">4,24%</span>
+                        <span class="ticker-change neutral"><i class="fas fa-minus"></i> Meta 3.0%</span>
+                    </div>
+                    <div class="ticker-card">
+                        <span class="ticker-name">CDI</span>
+                        <span class="ticker-value">10,40% a.a.</span>
+                        <span class="ticker-change neutral"><i class="fas fa-minus"></i> 100% Selic</span>
+                    </div>
+                </div>
+
+                <div class="portal-grid">
                     <div class="card">
-                        <h3>Distribuição por Categoria</h3>
-                        <div id="home-distribuicao" class="distribuicao-list">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                            <h3 style="font-size: 16px; font-weight: 700;"><i class="far fa-newspaper" style="margin-right: 8px; color: var(--color-blue);"></i> Últimas Notícias do Mercado</h3>
+                            <span class="badge badge-blue">Ao Vivo</span>
+                        </div>
+
+                        <div class="news-list">
+                            <div class="news-card">
+                                <div class="news-icon-box"><i class="fas fa-landmark"></i></div>
+                                <div style="flex: 1;">
+                                    <span class="news-badge macro">Macroeconomia</span>
+                                    <div class="news-title">Copom mantém taxa Selic em 10,50% e reforça compromisso com a meta de inflação</div>
+                                    <div class="news-meta">
+                                        <span><i class="far fa-clock"></i> Há 2 horas</span>
+                                        <span><i class="far fa-building"></i> Banco Central</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="news-card">
+                                <div class="news-icon-box"><i class="fas fa-chart-line"></i></div>
+                                <div style="flex: 1;">
+                                    <span class="news-badge acoes">Ações & Dividendos</span>
+                                    <div class="news-title">Petrobras (PETR4) e Vale (VALE3) lideram volume de negociação na B3 após anúncio de dividendos extraordinários</div>
+                                    <div class="news-meta">
+                                        <span><i class="far fa-clock"></i> Há 4 horas</span>
+                                        <span><i class="fas fa-chart-pie"></i> B3 Brasil</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="news-card">
+                                <div class="news-icon-box"><i class="fas fa-city"></i></div>
+                                <div style="flex: 1;">
+                                    <span class="news-badge fiis">Fundos Imobiliários</span>
+                                    <div class="news-title">Número de investidores em FIIs ultrapassa 2,6 milhões e atinge novo recorde histórico</div>
+                                    <div class="news-meta">
+                                        <span><i class="far fa-clock"></i> Há 6 horas</span>
+                                        <span><i class="far fa-user"></i> Investidor 10</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="news-card">
+                                <div class="news-icon-box"><i class="fab fa-bitcoin"></i></div>
+                                <div style="flex: 1;">
+                                    <span class="news-badge cripto">Criptomoedas</span>
+                                    <div class="news-title">ETFs de Bitcoin à vista nos EUA registram entrada líquida de mais de US$ 400 milhões em uma semana</div>
+                                    <div class="news-meta">
+                                        <span><i class="far fa-clock"></i> Há 8 horas</span>
+                                        <span><i class="fas fa-globe"></i> Global Market</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="card">
-                        <h3>Últimos Ativos Adicionados</h3>
-                        <div class="table-responsive">
-                            <table class="table" id="table-recentes">
-                                <thead>
-                                    <tr>
-                                        <th>Ativo</th>
-                                        <th>Tipo</th>
-                                        <th>Qtd</th>
-                                        <th>Preço Médio</th>
-                                        <th>Saldo</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                </tbody>
-                            </table>
+
+                    <div style="display: flex; flex-direction: column; gap: 20px;">
+                        <div class="card">
+                            <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 14px;"><i class="fas fa-fire" style="color: var(--color-orange); margin-right: 6px;"></i> Maiores Altas do Dia</h3>
+                            <div class="top-rank-item">
+                                <div>
+                                    <strong style="color: var(--color-blue);">PRIO3</strong>
+                                    <div style="font-size: 11px; color: var(--text-secondary);">PetroRio ON</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div>R$ 48,20</div>
+                                    <span class="text-green" style="font-size: 12px; font-weight: 700;">+4.12%</span>
+                                </div>
+                            </div>
+                            <div class="top-rank-item">
+                                <div>
+                                    <strong style="color: var(--color-blue);">WEGE3</strong>
+                                    <div style="font-size: 11px; color: var(--text-secondary);">WEG ON</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div>R$ 52,10</div>
+                                    <span class="text-green" style="font-size: 12px; font-weight: 700;">+2.85%</span>
+                                </div>
+                            </div>
+                            <div class="top-rank-item">
+                                <div>
+                                    <strong style="color: var(--color-blue);">ITUB4</strong>
+                                    <div style="font-size: 11px; color: var(--text-secondary);">Itaú Unibanco PN</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div>R$ 36,45</div>
+                                    <span class="text-green" style="font-size: 12px; font-weight: 700;">+1.90%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%); border-color: rgba(59, 130, 246, 0.2);">
+                            <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 6px; color: var(--color-blue);"><i class="fas fa-lightbulb"></i> Regra dos Aportes Constantes</h4>
+                            <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5;">
+                                Aportar com disciplina todos os meses supera o "timing" de tentar adivinhar a hora certa de comprar. O tempo no mercado é o maior multiplicador do investidor.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -108,7 +212,248 @@
                     </button>
                 </div>
 
-                <div id="categorias-container" class="categorias-container">
+                <div id="meus-ativos-deslogado" class="card empty-state" style="display: none; padding: 48px 24px;">
+                    <i class="fas fa-lock"></i>
+                    <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 6px; color: var(--text-primary);">Acesso Restrito</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 16px;">Faça login para visualizar o saldo, rentabilidade e gerenciar os seus investimentos.</p>
+                    <div>
+                        <button class="btn btn-primary" onclick="app.navegarPara('login')">
+                            <i class="fas fa-sign-in-alt"></i> Fazer Login
+                        </button>
+                    </div>
+                </div>
+
+                <div id="meus-ativos-logado">
+                    <div class="dashboard-summary">
+                        <div class="summary-card">
+                            <div class="summary-icon blue"><i class="fas fa-wallet"></i></div>
+                            <div>
+                                <h3>Total Investido</h3>
+                                <p id="dash-total-investido" class="text-blue">R$ 0,00</p>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-icon green"><i class="fas fa-chart-line"></i></div>
+                            <div>
+                                <h3>Valor Atual</h3>
+                                <p id="dash-valor-atual" class="text-green">R$ 0,00</p>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-icon purple"><i class="fas fa-percentage"></i></div>
+                            <div>
+                                <h3>Rentabilidade</h3>
+                                <p id="dash-rentabilidade" class="text-purple">0,00%</p>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-icon orange"><i class="fas fa-coins"></i></div>
+                            <div>
+                                <h3>Nº de Ativos</h3>
+                                <p id="dash-num-ativos" class="text-orange">0</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="home-grid">
+                        <div class="card">
+                            <h3>Distribuição por Categoria</h3>
+                            <div id="home-distribuicao" class="distribuicao-list">
+                            </div>
+                        </div>
+                        <div class="card">
+                            <h3>Últimos Ativos Adicionados</h3>
+                            <div class="table-responsive">
+                                <table class="table" id="table-recentes">
+                                    <thead>
+                                        <tr>
+                                            <th>Ativo</th>
+                                            <th>Tipo</th>
+                                            <th>Qtd</th>
+                                            <th>Preço Médio</th>
+                                            <th>Saldo</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="categorias-container" class="categorias-container">
+                    </div>
+                </div>
+            </section>
+
+            <section id="planejador" class="section">
+                <div class="section-header">
+                    <div>
+                        <h2>Controle de Salário & Aportes</h2>
+                        <p style="font-size: 13.5px; color: var(--text-secondary); margin-top: 3px;">Defina sua renda, divida em porcentagens e acompanhe a execução dos seus gastos e aportes.</p>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" id="btn-nova-cat-planejamento" onclick="app.abrirModalNovaCategoriaPlanejamento()">
+                            <i class="fas fa-folder-plus"></i> Nova Categoria (%)
+                        </button>
+                        <button class="btn btn-primary" id="btn-novo-planejamento" onclick="app.abrirModalNovoItemPlanejamento()">
+                            <i class="fas fa-plus"></i> Adicionar Campo / Item
+                        </button>
+                    </div>
+                </div>
+
+                <div id="planejador-deslogado" class="restricted-card" style="display: none;">
+                    <i class="fas fa-lock" style="font-size: 38px; color: var(--color-blue); margin-bottom: 14px; opacity: 0.8; display: block;"></i>
+                    <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 8px; color: var(--text-primary);">Acesso Restrito ao Planejador</h3>
+                    <p style="color: var(--text-secondary); font-size: 13.5px; margin-bottom: 20px; line-height: 1.5;">Faça login para salvar a divisão do seu salário e acompanhar as metas cumpridas do mês.</p>
+                    <div>
+                        <button class="btn btn-primary" onclick="app.navegarPara('login')">
+                            <i class="fas fa-sign-in-alt"></i> Fazer Login
+                        </button>
+                    </div>
+                </div>
+
+                <div id="planejador-logado">
+                    <div class="dashboard-summary">
+                        <div class="summary-card">
+                            <div class="summary-icon blue"><i class="fas fa-money-bill-wave"></i></div>
+                            <div>
+                                <h3>Renda Total</h3>
+                                <p id="plan-salario-display" class="text-blue">R$ 0,00</p>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-icon purple"><i class="fas fa-chart-pie"></i></div>
+                            <div>
+                                <h3>Total Alocado</h3>
+                                <p id="plan-total-alocado" class="text-purple">0%</p>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-icon green"><i class="fas fa-check-circle"></i></div>
+                            <div>
+                                <h3>Total Executado (Concluído)</h3>
+                                <p id="plan-total-executado" class="text-green">R$ 0,00</p>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-icon orange"><i class="fas fa-tasks"></i></div>
+                            <div>
+                                <h3>Metas Cumpridas</h3>
+                                <p id="plan-metas-concluidas" class="text-orange">0 / 0</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-bottom: 24px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                            <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap; flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <label style="font-weight: 700; font-size: 13.5px; white-space: nowrap; color: var(--text-primary);"><i class="fas fa-wallet" style="color: var(--color-blue); margin-right: 4px;"></i> Salário Mensal (R$):</label>
+                                    <input type="number" id="input-salario-mensal" class="form-control" style="max-width: 150px; font-weight: 700; font-size: 14.5px;" placeholder="0,00" step="0.01">
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <label style="font-weight: 700; font-size: 13.5px; white-space: nowrap; color: var(--text-primary);"><i class="fas fa-hand-holding-dollar" style="color: var(--color-green); margin-right: 4px;"></i> Renda Extra (R$):</label>
+                                    <input type="number" id="input-renda-extra" class="form-control" style="max-width: 150px; font-weight: 700; font-size: 14.5px;" placeholder="0,00" step="0.01">
+                                </div>
+                                <button class="btn btn-primary" onclick="app.atualizarSalarioPlanejamento()">
+                                    <i class="fas fa-save"></i> Atualizar
+                                </button>
+                            </div>
+                            <div id="plan-alert-badge" style="display: flex; align-items: center; gap: 8px;"></div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-bottom: 24px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 0;"><i class="fas fa-chart-pie" style="color: var(--color-blue); margin-right: 6px;"></i> Distribuição Percentual</h3>
+                            <span id="plan-status-badge" class="badge badge-blue">0% Definido</span>
+                        </div>
+                        <div id="plan-progress-bar" class="plan-progress-bar"></div>
+                        <div id="plan-legendas" style="display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px;"></div>
+                    </div>
+
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 10px;">
+                            <div>
+                                <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 2px;"><i class="fas fa-list-check" style="color: var(--color-green); margin-right: 6px;"></i> Divisões, Gastos & Aportes</h3>
+                                <p style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 0;">Acompanhe o orçamento sugerido vs. gastos reais e parcelas de cada categoria.</p>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;" onclick="app.abrirModalNovaCategoriaPlanejamento()">
+                                    <i class="fas fa-folder-plus"></i> Nova Categoria
+                                </button>
+                                <button class="btn btn-primary" style="font-size: 12px; padding: 6px 12px;" onclick="app.abrirModalNovoItemPlanejamento()">
+                                    <i class="fas fa-plus"></i> Adicionar Campo
+                                </button>
+                            </div>
+                        </div>
+                        <div id="plan-categorias-lista" class="categorias-container"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="login" class="section">
+                <div class="section-header">
+                    <h2>Acessar Conta</h2>
+                </div>
+
+                <div class="card" style="max-width: 440px; margin: 0 auto;">
+                    <form id="form-login">
+                        <div class="form-group" style="margin-bottom: 14px;">
+                            <label>E-mail ou Login</label>
+                            <input type="text" id="login-usuario" class="form-control" placeholder="seuemail@exemplo.com" required>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label>Senha</label>
+                            <input type="password" id="login-senha" class="form-control" placeholder="Digite sua senha" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-bottom: 16px;">
+                            <i class="fas fa-sign-in-alt"></i> Entrar
+                        </button>
+                    </form>
+                    <div style="text-align: center; font-size: 13px; color: var(--text-secondary); border-top: 1px solid var(--border-color); padding-top: 16px;">
+                        Ainda não é cadastrado? 
+                        <a href="#" onclick="app.navegarPara('cadastro')" style="color: var(--color-blue); font-weight: 600; text-decoration: none;">
+                            Criar uma conta
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <section id="cadastro" class="section">
+                <div class="section-header">
+                    <h2>Criar Conta</h2>
+                </div>
+
+                <div class="card" style="max-width: 480px; margin: 0 auto;">
+                    <form id="form-cadastro">
+                        <div class="form-group" style="margin-bottom: 14px;">
+                            <label>Nome Completo</label>
+                            <input type="text" id="cad-nome" class="form-control" placeholder="Digite seu nome..." required>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 14px;">
+                            <label>E-mail</label>
+                            <input type="email" id="cad-email" class="form-control" placeholder="email@exemplo.com" required>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 14px;">
+                            <label>Telefone</label>
+                            <input type="tel" id="cad-telefone" class="form-control" placeholder="(11) 99999-9999">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label>Senha</label>
+                            <input type="password" id="cad-senha" class="form-control" placeholder="Digite sua senha..." required>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
+                            <i class="fas fa-user-plus"></i> Concluir Cadastro
+                        </button>
+                    </form>
+                    <div style="text-align: center; font-size: 13px; color: var(--text-secondary); border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: 16px;">
+                        Já possui uma conta? 
+                        <a href="#" onclick="app.navegarPara('login')" style="color: var(--color-blue); font-weight: 600; text-decoration: none;">
+                            Fazer Login
+                        </a>
+                    </div>
                 </div>
             </section>
         </main>
@@ -153,6 +498,70 @@
             <div class="form-actions">
                 <button type="button" class="btn btn-secondary" onclick="app.fecharModal('ativo')">Cancelar</button>
                 <button type="submit" class="btn btn-primary">Salvar</button>
+            </div>
+        </form>
+    </div>
+
+    <div id="modal-item-planejamento" class="modal">
+        <div class="modal-header">
+            <h3 id="plan-item-modal-title">Novo Campo / Gasto / Aporte</h3>
+            <button class="btn-close" onclick="app.fecharModal('item-planejamento')">&times;</button>
+        </div>
+        <form id="form-item-planejamento">
+            <input type="hidden" id="plan-item-id">
+            <div class="form-grid">
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Categoria / Divisão</label>
+                    <select id="plan-item-categoria" class="form-control" required></select>
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Nome do Item</label>
+                    <input type="text" id="plan-item-nome" class="form-control" placeholder="Ex: Geladeira, BBAS3, Aluguel, Mercado" required>
+                </div>
+                <div class="form-group">
+                    <label>Quantidade</label>
+                    <input type="number" id="plan-item-qtd" class="form-control" value="1" min="1" step="1" required oninput="app.atualizarPreviewItemPlanejamento()">
+                </div>
+                <div class="form-group">
+                    <label>Valor Unitário ou Parcela (R$)</label>
+                    <input type="number" id="plan-item-valor" class="form-control" placeholder="0,00" step="0.01" min="0.01" required oninput="app.atualizarPreviewItemPlanejamento()">
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Nº de Parcelas</label>
+                    <input type="number" id="plan-item-parcelas" class="form-control" value="1" min="1" max="96" required oninput="app.atualizarPreviewItemPlanejamento()">
+                    <small style="color: var(--text-secondary); font-size: 11.5px; margin-top: 4px; display: block;">
+                        Deixe <strong>1</strong> para compras à vista/cotas de ativos. Se for parcelado (ex: 10x), o valor acima é a parcela mensal.
+                    </small>
+                </div>
+            </div>
+            <div id="plan-item-preview" style="background: rgba(59, 130, 246, 0.06); border: 1px dashed rgba(59, 130, 246, 0.3); padding: 12px 16px; border-radius: 8px; margin: 16px 0; font-size: 13.5px; color: var(--text-primary);">
+                Impacto no mês: <strong id="plan-preview-gasto" class="text-blue">R$ 0,00</strong>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="app.fecharModal('item-planejamento')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Salvar Item</button>
+            </div>
+        </form>
+    </div>
+
+    <div id="modal-categoria-planejamento" class="modal modal-sm">
+        <div class="modal-header">
+            <h3 id="plan-cat-modal-title">Nova Categoria / Divisão</h3>
+            <button class="btn-close" onclick="app.fecharModal('categoria-planejamento')">&times;</button>
+        </div>
+        <form id="form-categoria-planejamento">
+            <input type="hidden" id="plan-cat-id">
+            <div class="form-group" style="margin-bottom: 14px;">
+                <label>Nome da Categoria</label>
+                <input type="text" id="plan-cat-nome" class="form-control" placeholder="Ex: Casa / Moradia, Ações, Cripto, Lazer" required>
+            </div>
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label>Porcentagem Alocada da Renda (%)</label>
+                <input type="number" id="plan-cat-percent" class="form-control" placeholder="Ex: 30" min="0.1" max="100" step="0.1" required>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="app.fecharModal('categoria-planejamento')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Salvar Categoria</button>
             </div>
         </form>
     </div>

@@ -54,4 +54,15 @@ public class ManipuladorExcecoes {
         resposta.put("mensagem", ex.getMessage());
         return resposta;
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Map<String, Object> manipularArgumentoInvalido(IllegalArgumentException ex) {
+        Map<String, Object> resposta = new HashMap<>();
+        resposta.put("dataHora", LocalDateTime.now());
+        resposta.put("status", HttpStatus.BAD_REQUEST.value());
+        resposta.put("erro", "Requisição Inválida");
+        resposta.put("mensagem", ex.getMessage());
+        return resposta;
+    }
 }
