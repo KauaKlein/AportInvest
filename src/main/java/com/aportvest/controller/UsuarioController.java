@@ -1,6 +1,7 @@
 package com.aportvest.controller;
 
 
+import com.aportvest.dto.AlterarSenhaDTO;
 import com.aportvest.dto.UsuarioCadastroDTO;
 import com.aportvest.dto.UsuarioLoginDTO;
 import com.aportvest.model.Usuario;
@@ -9,10 +10,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/usuarios")
@@ -39,5 +37,18 @@ public class UsuarioController {
             Usuario logarUsuario = service.logar(dto);
             logarUsuario.setSenha(null);
             return ResponseEntity.ok(logarUsuario);
+    }
+
+    @PatchMapping("/{id}/tema")
+    public ResponseEntity<Usuario> atualizarTema(@PathVariable Long id, @RequestParam String tema) {
+        Usuario usuario = service.atualizarTema(id, tema);
+        usuario.setSenha(null);
+        return ResponseEntity.ok(usuario);
+    }
+
+    @PutMapping("/{id}/senha")
+    public ResponseEntity<Void> alterarSenha(@PathVariable Long id, @RequestBody @Valid AlterarSenhaDTO dto) {
+        service.alterarSenha(id, dto);
+        return ResponseEntity.noContent().build();
     }
 }

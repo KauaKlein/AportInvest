@@ -6,15 +6,18 @@ import com.aportvest.dto.PlanejamentoResponseDTO;
 import com.aportvest.dto.RendasDTO;
 import com.aportvest.exception.RecursoNaoEncontradoException;
 import com.aportvest.model.CategoriaPlanejamento;
+import com.aportvest.model.HistoricoMensal;
 import com.aportvest.model.ItemPlanejamento;
 import com.aportvest.model.Usuario;
 import com.aportvest.repository.CategoriaPlanejamentoRepository;
+import com.aportvest.repository.HistoricoMensalRepository;
 import com.aportvest.repository.ItemPlanejamentoRepository;
 import com.aportvest.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,6 +28,7 @@ public class PlanejamentoService {
     private final UsuarioRepository usuarioRepository;
     private final CategoriaPlanejamentoRepository categoriaRepository;
     private final ItemPlanejamentoRepository itemRepository;
+    private final HistoricoMensalRepository historicoRepository;
 
     @Transactional(readOnly = true)
     public PlanejamentoResponseDTO obterPlanejamento(Long usuarioId) {
@@ -160,6 +164,73 @@ public class PlanejamentoService {
         ItemPlanejamento item = itemRepository.findByIdAndCategoriaUsuarioId(itemId, usuarioId)
             .orElseThrow(() -> new RecursoNaoEncontradoException("Item não encontrado para este usuário."));
         itemRepository.delete(item);
+    }
+
+    @Transactional(readOnly = true)
+    public List<HistoricoMensal> listarHistoricos(Long usuarioId) {
+        return historicoRepository.findByUsuarioIdOrderByMesAnoDesc(usuarioId);
+    }
+
+    @Transactional
+    public HistoricoMensal fecharMes(Long usuarioId, String mesAno, String nomeMes) {
+        Usuario usuario = buscarUsuario(usuarioId);
+        List<CategoriaPlanejamento> categorias = categoriaRepository.findByUsuarioIdOrderByIdAsc(usuarioId);
+
+        double salario = usuario.getSalario() != null ? usuario.getSalario() : 0.0;
+        double rendaExtra = usuario.getRendaExtra() != null ? usuario.getRendaExtra() : 0.0;
+        double rendaTotal = salario + rendaExtra;
+
+        List<ItemPlanejamento> todosItens = categorias.stream()
+                .flatMap(c -> c.getItens().stream())
+                .toList();
+
+        double totalPlanejado = todosItens.stream()
+                .mapToDouble(i -> (i.getQuantidade() != null ? i.getQuantidade() : 1.0) * (i.getValor() != null ? i.getValor() : 0.0))
+                .sum();
+
+        List<ItemPlanejamento> concluidos = todosItens.stream()
+                .filter(i -> Boolean.TRUE.equals(i.getConcluido()))
+                .toList();
+
+        double totalExecutado = concluidos.stream()
+                .mapToDouble(i -> (i.getQuantidade() != null ? i.getQuantidade() : 1.0) * (i.getValor() != null ? i.getValor() : 0.0))
+                .sum();
+
+        double saldoRestante = Math.max(0, rendaTotal - totalExecutado);
+
+        HistoricoMensal historico = historicoRepository.findByUsuarioIdAndMesAno(usuarioId, mesAno)
+                .orElse(new HistoricoMensal());
+
+        historico.setUsuario(usuario);
+        historico.setMesAno(mesAno);
+        historico.setNomeMes(nomeMes);
+        historico.setSalario(salario);
+        historico.setRendaExtra(rendaExtra);
+        historico.setRendaTotal(rendaTotal);
+        historico.setTotalPlanejado(totalPlanejado);
+        historico.setTotalExecutado(totalExecutado);
+        historico.setSaldoRestante(saldoRestante);
+        historico.setTotalItens(todosItens.size());
+        historico.setItensConcluidos(concluidos.size());
+        historico.setDataFechamento(LocalDateTime.now());
+
+        return historicoRepository.save(historico);
+    }
+
+    @Transactional
+    public void excluirHistorico(Long usuarioId, Long historicoId) {
+        HistoricoMensal hist = historicoRepository.findById(historicoId)
+                .filter(h -> h.getUsuario().getId().equals(usuarioId))
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Histórico não encontrado para este usuário."));
+        historicoRepository.delete(hist);
+    }
+
+    @Transactional
+    public RendasDTO zerarRendaExtra(Long usuarioId) {
+        Usuario usuario = buscarUsuario(usuarioId);
+        usuario.setRendaExtra(0.0);
+        usuarioRepository.save(usuario);
+        return new RendasDTO(usuario.getSalario(), 0.0);
     }
 
     private Usuario buscarUsuario(Long usuarioId) {

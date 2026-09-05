@@ -17,7 +17,7 @@ const TIPO_LABELS = {
     RENDA_FIXA: 'Renda Fixa',
     CDB: 'CDB',
     FUNDO_IMOBILIARIO: 'Fundo Imobiliário',
-
+    ETF: 'ETFs'
 };
 const CORES_PLANEJAMENTO = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4', '#6366f1', '#14b8a6', '#f97316', '#84cc16'];
 const app = {
@@ -28,15 +28,60 @@ const app = {
             rendaExtra: 0,
             categorias: []
         },
+        paginaRetorno: null,
         callbackConfirmacao: null,
         usuario: JSON.parse(localStorage.getItem('usuario_logado') || 'null')
     },
     iniciar() {
+        const temaInicial = (this.estado.usuario && this.estado.usuario.tema) || localStorage.getItem('tema_preferido') || 'light';
+        this.aplicarTema(temaInicial);
         this.configurarNavegacao();
         this.configurarFormularios();
         this.preencherSeletores();
         this.atualizarInterfaceUsuario();
-        this.navegarPara('home');
+
+        const rotaHash = window.location.hash.replace(/^#\/?/, '');
+        const rotaSessao = sessionStorage.getItem('secao_ativa');
+        const rotaInicial = (rotaHash && document.getElementById(rotaHash))
+            ? rotaHash
+            : ((rotaSessao && document.getElementById(rotaSessao)) ? rotaSessao : 'home');
+
+        this.navegarPara(rotaInicial);
+    },
+    aplicarTema(tema) {
+        const ehDark = tema === 'dark';
+        if (ehDark) {
+            document.body.classList.add('dark-theme');
+        } else {
+            document.body.classList.remove('dark-theme');
+        }
+
+        const iconSidebar = document.getElementById('theme-icon-sidebar');
+        const textSidebar = document.getElementById('theme-text-sidebar');
+        const iconMobile = document.getElementById('theme-icon-mobile');
+
+        if (iconSidebar) iconSidebar.className = ehDark ? 'fas fa-sun' : 'fas fa-moon';
+        if (textSidebar) textSidebar.textContent = ehDark ? 'Modo Claro' : 'Modo Escuro';
+        if (iconMobile) iconMobile.className = ehDark ? 'fas fa-sun' : 'fas fa-moon';
+    },
+    async alternarTema() {
+        const ehDark = document.body.classList.contains('dark-theme');
+        const novoTema = ehDark ? 'light' : 'dark';
+        this.aplicarTema(novoTema);
+
+        if (this.estado.usuario) {
+            this.estado.usuario.tema = novoTema;
+            localStorage.setItem('usuario_logado', JSON.stringify(this.estado.usuario));
+            try {
+                await this.chamarAPI(`/usuarios/${this.estado.usuario.id}/tema?tema=${novoTema}`, {
+                    method: 'PATCH'
+                });
+            } catch (erro) {
+                console.error('Erro ao salvar tema na nuvem:', erro);
+            }
+        } else {
+            localStorage.setItem('tema_preferido', novoTema);
+        }
     },
     alternarMenuLateral() {
         document.getElementById('sidebar').classList.toggle('open');
@@ -54,12 +99,35 @@ const app = {
                 this.fecharMenuLateral();
             });
         });
+
+        window.addEventListener('hashchange', () => {
+            const rota = window.location.hash.replace(/^#\/?/, '');
+            if (rota && document.getElementById(rota)) {
+                this.navegarPara(rota, null, false);
+            }
+        });
     },
-    navegarPara(idSecao) {
-        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    navegarPara(idSecao, origem = null, atualizarHash = true) {
+        if (!idSecao || !document.getElementById(idSecao)) {
+            idSecao = 'home';
+        }
+
+        if (idSecao === 'login' && origem) {
+            this.estado.paginaRetorno = origem;
+        } else if (idSecao !== 'login') {
+            this.estado.paginaRetorno = null;
+        }
+
+        sessionStorage.setItem('secao_ativa', idSecao);
+
+        if (atualizarHash && window.location.hash !== `#${idSecao}`) {
+            window.location.hash = idSecao;
+        }
+
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
         const navItem = document.querySelector(`.nav-item[data-target="${idSecao}"]`);
         if (navItem) navItem.classList.add('active');
-        document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.section').forEach(secao => secao.classList.remove('active'));
         const secao = document.getElementById(idSecao);
         if (secao) secao.classList.add('active');
         if (idSecao === 'home') this.carregarHome();
@@ -83,6 +151,10 @@ const app = {
         const formCatPlan = document.getElementById('form-categoria-planejamento');
         if (formCatPlan) {
             formCatPlan.addEventListener('submit', (e) => this.salvarCategoriaPlanejamento(e));
+        }
+        const formAltSenha = document.getElementById('form-alterar-senha');
+        if (formAltSenha) {
+            formAltSenha.addEventListener('submit', (e) => this.salvarAlteracaoSenha(e));
         }
         document.getElementById('btn-confirmar-sim').addEventListener('click', () => {
             if (this.estado.callbackConfirmacao) this.estado.callbackConfirmacao();
@@ -201,6 +273,23 @@ const app = {
             document.getElementById('dash-rentabilidade').textContent = formatarPorcentagem(rentabilidade);
             document.getElementById('dash-rentabilidade').className = rentabilidade >= 0 ? 'text-green' : 'text-red';
             document.getElementById('dash-num-ativos').textContent = aportes.length;
+
+            try {
+                const dadosPlan = await this.chamarAPI(`/planejamento?usuarioId=${this.estado.usuario.id}`);
+                if (dadosPlan) {
+                    this.estado.planejamento = dadosPlan;
+                    const salario = parseFloat(dadosPlan.salario) || 0;
+                    const rendaExtra = parseFloat(dadosPlan.rendaExtra) || 0;
+                    const rendaTotal = salario + rendaExtra;
+                    const todosItens = (dadosPlan.categorias || []).flatMap(c => c.itens || []);
+                    const valorExecutado = todosItens.filter(i => i.concluido).reduce((s, i) => s + (i.quantidade * i.valor), 0);
+                    const saldoLivre = Math.max(0, rendaTotal - valorExecutado);
+                    const elSaldo = document.getElementById('dash-saldo-planejamento');
+                    if (elSaldo) elSaldo.textContent = formatarMoeda(saldoLivre);
+                }
+            } catch (e) {
+                console.warn('Erro ao carregar saldo do planejamento:', e);
+            }
 
             const grupos = this.agruparPorCategoria(aportes);
             const containerDist = document.getElementById('home-distribuicao');
@@ -444,10 +533,15 @@ const app = {
             });
             this.estado.usuario = usuario;
             localStorage.setItem('usuario_logado', JSON.stringify(usuario));
+            if (usuario.tema) {
+                this.aplicarTema(usuario.tema);
+            }
             this.mostrarAviso(`Bem-vindo(a), ${usuario.nome}!`, 'success');
             document.getElementById('form-login').reset();
             this.atualizarInterfaceUsuario();
-            setTimeout(() => this.navegarPara('home'), 1000);
+            const destino = this.estado.paginaRetorno || 'home';
+            this.estado.paginaRetorno = null;
+            setTimeout(() => this.navegarPara(destino), 1000);
         } catch (erro) {
             console.error('Erro no login:', erro);
         }
@@ -458,6 +552,45 @@ const app = {
         this.atualizarInterfaceUsuario();
         this.mostrarAviso('Você saiu da sua conta', 'info');
         this.navegarPara('home');
+    },
+    abrirModalPerfil() {
+        if (!this.estado.usuario) return;
+        const nomeDisp = document.getElementById('perfil-nome-display');
+        const emailDisp = document.getElementById('perfil-email-display');
+        if (nomeDisp) nomeDisp.textContent = this.estado.usuario.nome || 'Usuário';
+        if (emailDisp) emailDisp.textContent = this.estado.usuario.email || '';
+        const form = document.getElementById('form-alterar-senha');
+        if (form) form.reset();
+        this.abrirModal('perfil');
+    },
+    async salvarAlteracaoSenha(e) {
+        e.preventDefault();
+        if (!this.estado.usuario) return;
+        const senhaAtual = document.getElementById('perfil-senha-atual').value;
+        const novaSenha = document.getElementById('perfil-nova-senha').value;
+        const confirmaSenha = document.getElementById('perfil-confirma-senha').value;
+
+        if (novaSenha !== confirmaSenha) {
+            this.mostrarAviso('A confirmação da nova senha não confere.', 'error');
+            return;
+        }
+
+        if (novaSenha.length < 6) {
+            this.mostrarAviso('A nova senha deve ter no mínimo 6 caracteres.', 'error');
+            return;
+        }
+
+        try {
+            await this.chamarAPI(`/usuarios/${this.estado.usuario.id}/senha`, {
+                method: 'PUT',
+                body: JSON.stringify({ senhaAtual, novaSenha })
+            });
+            this.mostrarAviso('Senha alterada com sucesso!', 'success');
+            this.fecharModal('perfil');
+            document.getElementById('form-alterar-senha').reset();
+        } catch (erro) {
+            console.error('Erro ao alterar senha:', erro);
+        }
     },
     atualizarInterfaceUsuario() {
         const box = document.getElementById('usuario-logado-box');
@@ -497,16 +630,144 @@ const app = {
             this.estado.planejamento = { salario: 0, rendaExtra: 0, categorias: [] };
         }
 
+        this.atualizarDiasRestantesMes();
         this.renderizarPlanejamento();
+    },
+    obterInfoMesAtual() {
+        const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        const hoje = new Date();
+        const ano = hoje.getFullYear();
+        const mesIndex = hoje.getMonth();
+        const nomeMes = `${meses[mesIndex]} / ${ano}`;
+        const mesAno = `${ano}-${String(mesIndex + 1).padStart(2, '0')}`;
+        const ultimoDia = new Date(ano, mesIndex + 1, 0).getDate();
+        const diasRestantes = ultimoDia - hoje.getDate();
+        return { ano, mesIndex, nomeMes, mesAno, diasRestantes, ultimoDia };
+    },
+    atualizarDiasRestantesMes() {
+        const badge = document.getElementById('plan-dias-restantes-badge');
+        if (!badge) return;
+        const info = this.obterInfoMesAtual();
+        if (info.diasRestantes === 0) {
+            badge.innerHTML = `<i class="fas fa-hourglass-end"></i> <strong>${info.nomeMes}</strong> · Último dia do mês!`;
+            badge.className = 'badge badge-red';
+        } else if (info.diasRestantes === 1) {
+            badge.innerHTML = `<i class="far fa-calendar-alt"></i> <strong>${info.nomeMes}</strong> · Falta <strong>1 dia</strong> para virar o mês`;
+            badge.className = 'badge badge-orange';
+        } else {
+            badge.innerHTML = `<i class="far fa-calendar-alt"></i> <strong>${info.nomeMes}</strong> · Faltam <strong>${info.diasRestantes} dias</strong> para virar o mês`;
+            badge.className = 'badge badge-purple';
+        }
+    },
+    confirmarZerarRendaExtra() {
+        if (!this.estado.usuario) return;
+        this.confirmarAcao('Deseja realmente zerar a renda extra acumulada deste mês?', async () => {
+            try {
+                const res = await this.chamarAPI(`/planejamento/zerar-extra?usuarioId=${this.estado.usuario.id}`, {
+                    method: 'POST'
+                });
+                if (res) {
+                    this.estado.planejamento.rendaExtra = 0;
+                }
+                this.mostrarAviso('Renda Extra zerada com sucesso!', 'info');
+                this.renderizarPlanejamento();
+            } catch (erro) {
+                console.error('Erro ao zerar renda extra:', erro);
+            }
+        });
+    },
+    confirmarFecharMes() {
+        if (!this.estado.usuario) return;
+        const info = this.obterInfoMesAtual();
+        this.confirmarAcao(`Deseja consolidar e arquivar o fechamento do mês de ${info.nomeMes} no Histórico?`, async () => {
+            try {
+                await this.chamarAPI(`/planejamento/fechar-mes?usuarioId=${this.estado.usuario.id}&mesAno=${info.mesAno}&nomeMes=${encodeURIComponent(info.nomeMes)}`, {
+                    method: 'POST'
+                });
+                this.mostrarAviso(`Fechamento de ${info.nomeMes} salvo no histórico!`, 'success');
+            } catch (erro) {
+                console.error('Erro ao fechar mês:', erro);
+            }
+        });
+    },
+    async abrirModalHistoricoMeses() {
+        if (!this.estado.usuario) return;
+        const tbody = document.getElementById('tbody-historico-meses');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 24px;">Carregando histórico...</td></tr>';
+        this.abrirModal('historico-meses');
+
+        try {
+            const historicos = await this.chamarAPI(`/planejamento/historico?usuarioId=${this.estado.usuario.id}`);
+            if (!tbody) return;
+
+            if (!historicos || historicos.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 32px 16px;">
+                            <i class="fas fa-calendar-times" style="font-size: 28px; margin-bottom: 8px; opacity: 0.5; display: block;"></i>
+                            Nenhum mês arquivado ainda. Clique em <strong>"Fechar / Salvar Mês"</strong> no fim do mês para criar seu histórico.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = historicos.map(h => {
+                return `
+                    <tr>
+                        <td><strong>${h.nomeMes}</strong></td>
+                        <td class="text-blue">${formatarMoeda(h.rendaTotal)}</td>
+                        <td>${formatarMoeda(h.totalPlanejado || 0)}</td>
+                        <td><strong>${formatarMoeda(h.totalExecutado || 0)}</strong></td>
+                        <td><strong class="text-green">${formatarMoeda(h.saldoRestante || 0)}</strong></td>
+                        <td><span class="badge badge-purple">${h.itensConcluidos || 0} / ${h.totalItens || 0}</span></td>
+                        <td>
+                            <button class="btn-icon" style="color: var(--color-red);" title="Excluir Registro" onclick="app.excluirHistoricoMes(${h.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        } catch (erro) {
+            console.error('Erro ao buscar histórico de meses:', erro);
+            if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--color-red); padding: 16px;">Erro ao carregar histórico.</td></tr>';
+        }
+    },
+    excluirHistoricoMes(id) {
+        if (!this.estado.usuario) return;
+        this.confirmarAcao('Tem certeza que deseja excluir este mês do histórico?', async () => {
+            try {
+                await this.chamarAPI(`/planejamento/historico/${id}?usuarioId=${this.estado.usuario.id}`, {
+                    method: 'DELETE'
+                });
+                this.mostrarAviso('Registro do histórico excluído!', 'info');
+                this.abrirModalHistoricoMeses();
+            } catch (erro) {
+                console.error('Erro ao excluir histórico:', erro);
+            }
+        });
     },
     async atualizarSalarioPlanejamento() {
         if (!this.estado.usuario) return;
         const inputSalario = document.getElementById('input-salario-mensal');
         const inputExtra = document.getElementById('input-renda-extra');
-        const novoSalario = parseFloat(inputSalario ? inputSalario.value : 0) || 0;
-        const novaRendaExtra = parseFloat(inputExtra ? inputExtra.value : 0) || 0;
 
-        if (novoSalario < 0 || novaRendaExtra < 0) {
+        const salarioDigitado = inputSalario && inputSalario.value.trim() !== '' ? parseFloat(inputSalario.value) : null;
+        const extraDigitado = inputExtra && inputExtra.value.trim() !== '' ? parseFloat(inputExtra.value) : null;
+
+        if (salarioDigitado === null && extraDigitado === null) {
+            this.mostrarAviso('Informe um valor para Salário ou Renda Extra para atualizar.', 'info');
+            return;
+        }
+
+        const salarioAtual = parseFloat(this.estado.planejamento.salario) || 0;
+        const extraAtual = parseFloat(this.estado.planejamento.rendaExtra) || 0;
+
+        const novoSalario = salarioDigitado !== null ? salarioDigitado : salarioAtual;
+        const novoExtra = extraDigitado !== null ? (extraAtual + extraDigitado) : extraAtual;
+
+        if (novoSalario < 0 || novoExtra < 0) {
             this.mostrarAviso('Por favor, informe valores válidos maiores ou iguais a zero.', 'error');
             return;
         }
@@ -514,13 +775,15 @@ const app = {
         try {
             const res = await this.chamarAPI(`/planejamento/rendas?usuarioId=${this.estado.usuario.id}`, {
                 method: 'PUT',
-                body: JSON.stringify({ salario: novoSalario, rendaExtra: novaRendaExtra })
+                body: JSON.stringify({ salario: novoSalario, rendaExtra: novoExtra })
             });
             if (res) {
                 this.estado.planejamento.salario = res.salario;
                 this.estado.planejamento.rendaExtra = res.rendaExtra;
             }
-            this.mostrarAviso('Salário e Renda Extra salvos na nuvem!', 'success');
+            if (inputSalario) inputSalario.value = '';
+            if (inputExtra) inputExtra.value = '';
+            this.mostrarAviso(extraDigitado ? `Renda Extra de ${formatarMoeda(extraDigitado)} somada com sucesso!` : 'Salário atualizado!', 'success');
             this.renderizarPlanejamento();
         } catch (erro) {
             console.error('Erro ao atualizar rendas:', erro);
@@ -581,20 +844,20 @@ const app = {
         const qtd = parseFloat(document.getElementById('plan-item-qtd').value) || 0;
         const valor = parseFloat(document.getElementById('plan-item-valor').value) || 0;
         const parcelas = parseInt(document.getElementById('plan-item-parcelas').value, 10) || 1;
-        const elPreview = document.getElementById('plan-item-preview');
-        if (!elPreview) return;
+        const preview = document.getElementById('plan-item-preview');
+        if (!preview) return;
 
         const gastoMensal = qtd * valor;
         if (parcelas > 1) {
             const totalCompra = gastoMensal * parcelas;
-            elPreview.innerHTML = `
+            preview.innerHTML = `
                 <div>Gasto neste mês: <strong class="text-blue" style="font-size: 15px;">${formatarMoeda(gastoMensal)}</strong></div>
                 <div style="font-size: 12px; color: var(--text-secondary); margin-top: 3px;">
                     <i class="fas fa-credit-card"></i> Compra parcelada em <strong>${parcelas}x</strong> de ${formatarMoeda(valor)} ${qtd > 1 ? `(${qtd} un.)` : ''} · Total: <strong>${formatarMoeda(totalCompra)}</strong>
                 </div>
             `;
         } else {
-            elPreview.innerHTML = `
+            preview.innerHTML = `
                 <div>Gasto neste mês: <strong class="text-blue" style="font-size: 15px;">${formatarMoeda(gastoMensal)}</strong></div>
                 <div style="font-size: 12px; color: var(--text-secondary); margin-top: 3px;">
                     <i class="fas fa-coins"></i> À vista / aporte único no mês · ${qtd} un. x ${formatarMoeda(valor)}
@@ -752,65 +1015,65 @@ const app = {
         const rendaTotal = salario + rendaExtra;
         const categorias = dados.categorias || [];
 
-        const inputSalario = document.getElementById('input-salario-mensal');
-        if (inputSalario) inputSalario.value = salario > 0 ? salario : '';
-        const inputExtra = document.getElementById('input-renda-extra');
-        if (inputExtra) inputExtra.value = rendaExtra > 0 ? rendaExtra : '';
-
         const totalPercent = categorias.reduce((s, c) => s + (parseFloat(c.percent) || 0), 0);
         const todosItens = categorias.flatMap(c => (c.itens || []).map(i => ({ ...i, catId: c.id })));
         const totalItens = todosItens.length;
+        const valorTotalPlanejado = todosItens.reduce((s, i) => s + (i.quantidade * i.valor), 0);
         const itensConcluidos = todosItens.filter(i => i.concluido);
-        const totalExecutado = itensConcluidos.reduce((s, i) => s + (i.quantidade * i.valor), 0);
+        const valorTotalExecutado = itensConcluidos.reduce((s, i) => s + (i.quantidade * i.valor), 0);
 
-        const elSalarioDisplay = document.getElementById('plan-salario-display');
-        const elTotalAlocado = document.getElementById('plan-total-alocado');
-        const elTotalExecutado = document.getElementById('plan-total-executado');
-        const elMetasConcluidas = document.getElementById('plan-metas-concluidas');
+        const salarioDisplay = document.getElementById('plan-salario-display');
+        const totalPlanejadoDisplay = document.getElementById('plan-total-planejado');
+        const saldoRestanteDisplay = document.getElementById('plan-saldo-restante') || document.getElementById('plan-falta-gastar');
+        const totalExecutadoDisplay = document.getElementById('plan-total-executado');
+        const metasConcluidas = document.getElementById('plan-metas-concluidas');
 
-        if (elSalarioDisplay) {
+        if (salarioDisplay) {
             if (rendaExtra > 0) {
-                elSalarioDisplay.innerHTML = `
+                salarioDisplay.innerHTML = `
                     <span>${formatarMoeda(rendaTotal)}</span>
                     <div style="font-size: 11px; font-weight: 500; color: var(--text-secondary); margin-top: 2px;">
                         Salário: ${formatarMoeda(salario)} | Extra: ${formatarMoeda(rendaExtra)}
                     </div>
                 `;
             } else {
-                elSalarioDisplay.textContent = formatarMoeda(salario);
+                salarioDisplay.textContent = formatarMoeda(salario);
             }
         }
-        if (elTotalAlocado) {
-            elTotalAlocado.textContent = `${totalPercent.toFixed(1)}%`;
-            elTotalAlocado.className = totalPercent > 100 ? 'text-red' : (totalPercent === 100 ? 'text-green' : 'text-purple');
+        if (totalPlanejadoDisplay) {
+            totalPlanejadoDisplay.textContent = formatarMoeda(valorTotalPlanejado);
         }
-        if (elTotalExecutado) elTotalExecutado.textContent = formatarMoeda(totalExecutado);
-        if (elMetasConcluidas) elMetasConcluidas.textContent = `${itensConcluidos.length} / ${totalItens}`;
+        if (saldoRestanteDisplay) {
+            const restanteValor = Math.max(0, rendaTotal - valorTotalExecutado);
+            saldoRestanteDisplay.textContent = formatarMoeda(restanteValor);
+        }
+        if (totalExecutadoDisplay) totalExecutadoDisplay.textContent = formatarMoeda(valorTotalExecutado);
+        if (metasConcluidas) metasConcluidas.textContent = `${itensConcluidos.length} / ${totalItens}`;
 
-        const elAlertBadge = document.getElementById('plan-alert-badge');
-        if (elAlertBadge) {
+        const alertBadge = document.getElementById('plan-alert-badge');
+        if (alertBadge) {
             if (totalPercent > 100) {
-                elAlertBadge.innerHTML = `<span class="badge badge-red" style="font-size: 13px; padding: 6px 12px;"><i class="fas fa-exclamation-triangle"></i> Soma: ${totalPercent.toFixed(1)}% (Excede 100%)</span>`;
+                alertBadge.innerHTML = `<span class="badge badge-red" style="font-size: 13px; padding: 6px 12px;"><i class="fas fa-exclamation-triangle"></i> Soma: ${totalPercent.toFixed(1)}% (Excede 100%)</span>`;
             } else if (totalPercent === 100) {
-                elAlertBadge.innerHTML = `<span class="badge badge-green" style="font-size: 13px; padding: 6px 12px;"><i class="fas fa-check-double"></i> 100% Alocado com perfeição!</span>`;
+                alertBadge.innerHTML = `<span class="badge badge-green" style="font-size: 13px; padding: 6px 12px;"><i class="fas fa-check-double"></i> 100% Alocado com perfeição!</span>`;
             } else {
                 const restante = 100 - totalPercent;
-                elAlertBadge.innerHTML = `<span class="badge badge-blue" style="font-size: 13px; padding: 6px 12px;"><i class="fas fa-info-circle"></i> ${restante.toFixed(1)}% livre para alocar</span>`;
+                alertBadge.innerHTML = `<span class="badge badge-blue" style="font-size: 13px; padding: 6px 12px;"><i class="fas fa-info-circle"></i> ${restante.toFixed(1)}% livre para alocar</span>`;
             }
         }
 
-        const elStatusBadge = document.getElementById('plan-status-badge');
-        if (elStatusBadge) {
-            elStatusBadge.textContent = `${totalPercent.toFixed(1)}% Definido`;
-            elStatusBadge.className = `badge ${totalPercent === 100 ? 'badge-green' : (totalPercent > 100 ? 'badge-red' : 'badge-blue')}`;
+        const statusBadge = document.getElementById('plan-status-badge');
+        if (statusBadge) {
+            statusBadge.textContent = `${totalPercent.toFixed(1)}% Definido`;
+            statusBadge.className = `badge ${totalPercent === 100 ? 'badge-green' : (totalPercent > 100 ? 'badge-red' : 'badge-blue')}`;
         }
 
-        const elProgressBar = document.getElementById('plan-progress-bar');
-        const elLegendas = document.getElementById('plan-legendas');
-        if (elProgressBar && elLegendas) {
+        const progressBar = document.getElementById('plan-progress-bar');
+        const legendas = document.getElementById('plan-legendas');
+        if (progressBar && legendas) {
             if (categorias.length === 0) {
-                elProgressBar.innerHTML = '<div style="flex: 1; background: var(--border-color); border-radius: 999px;"></div>';
-                elLegendas.innerHTML = '<span style="font-size: 12px; color: var(--text-secondary);">Nenhuma categoria cadastrada ainda.</span>';
+                progressBar.innerHTML = '<div style="flex: 1; background: var(--border-color); border-radius: 999px;"></div>';
+                legendas.innerHTML = '<span style="font-size: 12px; color: var(--text-secondary);">Nenhuma categoria cadastrada ainda.</span>';
             } else {
                 let barHtml = '';
                 let legendasHtml = '';
@@ -826,22 +1089,22 @@ const app = {
                         </div>
                     `;
                 });
-                elProgressBar.innerHTML = barHtml;
-                elLegendas.innerHTML = legendasHtml;
+                progressBar.innerHTML = barHtml;
+                legendas.innerHTML = legendasHtml;
             }
         }
 
-        const elLista = document.getElementById('plan-categorias-lista');
-        if (elLista) {
+        const listaCategorias = document.getElementById('plan-categorias-lista');
+        if (listaCategorias) {
             if (categorias.length === 0) {
-                elLista.innerHTML = `
+                listaCategorias.innerHTML = `
                     <div style="text-align: center; padding: 32px 16px; color: var(--text-secondary);">
                         <i class="fas fa-folder-open" style="font-size: 32px; margin-bottom: 10px; opacity: 0.5;"></i>
                         <p style="font-size: 14px;">Nenhuma categoria adicionada. Clique em <strong>"Nova Categoria"</strong> para começar a dividir sua renda!</p>
                     </div>
                 `;
             } else {
-                elLista.innerHTML = categorias.map((cat, idx) => {
+                listaCategorias.innerHTML = categorias.map((cat, idx) => {
                     const cor = CORES_PLANEJAMENTO[idx % CORES_PLANEJAMENTO.length];
                     const valorSugerido = (rendaTotal * cat.percent) / 100;
                     const itensCat = cat.itens || [];
@@ -853,9 +1116,6 @@ const app = {
                         <tr>
                             <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 20px;">
                                 Nenhum item ou gasto cadastrado nesta categoria.
-                                <button class="btn btn-secondary" style="font-size: 11.5px; padding: 4px 10px; margin-left: 8px;" onclick="app.abrirModalNovoItemPlanejamento('${cat.id}')">
-                                    <i class="fas fa-plus"></i> Adicionar Item
-                                </button>
                             </td>
                         </tr>
                     ` : itensCat.map(item => {

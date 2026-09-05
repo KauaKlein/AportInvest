@@ -18,9 +18,14 @@
                 <span class="logo-badge"><i class="fas fa-chart-line"></i></span>
                 <span class="logo-text">Aport<span class="logo-accent">vest</span></span>
             </div>
-            <button class="hamburger" onclick="app.alternarMenuLateral()">
-                <i class="fas fa-bars"></i>
-            </button>
+            <div style="display: flex; align-items: center; gap: 4px;">
+                <button class="mobile-theme-btn" onclick="app.alternarTema()" title="Alternar Modo Escuro" aria-label="Alternar tema">
+                    <i class="fas fa-moon" id="theme-icon-mobile"></i>
+                </button>
+                <button class="hamburger" onclick="app.alternarMenuLateral()" aria-label="Abrir menu">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
         </header>
 
         <div class="sidebar-overlay" id="sidebar-overlay" onclick="app.fecharMenuLateral()"></div>
@@ -49,11 +54,28 @@
                     <span class="icon"><i class="fas fa-sign-in-alt"></i></span> Entrar
                 </a>
             </nav>
-            <div id="usuario-logado-box" style="display: none; padding: 16px; border-top: 1px solid rgba(255,255,255,0.08); margin-top: auto;">
-                <div style="font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 6px;" id="usuario-logado-nome">Olá, Usuário</div>
-                <a href="#" onclick="app.deslogar()" style="color: #ef4444; font-size: 12px; text-decoration: none; display: flex; align-items: center; gap: 6px;">
-                    <i class="fas fa-sign-out-alt"></i> Sair da conta
-                </a>
+            <div style="padding: 10px 16px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <button class="theme-toggle-btn" onclick="app.alternarTema()" title="Alternar Modo Escuro">
+                    <span class="icon"><i class="fas fa-moon" id="theme-icon-sidebar"></i></span>
+                    <span id="theme-text-sidebar">Modo Escuro</span>
+                </button>
+            </div>
+            <div id="usuario-logado-box" style="display: none; padding: 14px 16px; border-top: 1px solid rgba(255,255,255,0.08); margin-top: auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <div style="font-size: 13px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="usuario-logado-nome">Olá, Usuário</div>
+                    <button onclick="app.abrirModalPerfil()" title="Meu Perfil / Trocar Senha" style="background: none; border: none; color: var(--color-blue); font-size: 13px; cursor: pointer; padding: 2px;">
+                        <i class="fas fa-user-cog"></i>
+                    </button>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <a href="#" onclick="app.abrirModalPerfil()" style="color: var(--text-sidebar); font-size: 11.5px; text-decoration: none; display: flex; align-items: center; gap: 4px;">
+                        <i class="fas fa-key"></i> Trocar Senha
+                    </a>
+                    <span style="color: rgba(255,255,255,0.2);">|</span>
+                    <a href="#" onclick="app.deslogar()" style="color: #ef4444; font-size: 11.5px; text-decoration: none; display: flex; align-items: center; gap: 4px;">
+                        <i class="fas fa-sign-out-alt"></i> Sair
+                    </a>
+                </div>
             </div>
         </aside>
 
@@ -65,7 +87,7 @@
                         <p>Acompanhe os principais índices econômicos, cotações em tempo real e os destaques do mercado financeiro.</p>
                     </div>
                     <div>
-                        <button class="btn btn-primary" onclick="app.navegarPara(app.estado.usuario ? 'meus-ativos' : 'login')">
+                        <button class="btn btn-primary" onclick="app.navegarPara(app.estado.usuario ? 'meus-ativos' : 'login', 'meus-ativos')">
                             <i class="fas fa-chart-line"></i> <span id="hero-btn-text">Minha Carteira</span>
                         </button>
                     </div>
@@ -220,7 +242,7 @@
                     <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 6px; color: var(--text-primary);">Acesso Restrito</h3>
                     <p style="color: var(--text-secondary); margin-bottom: 16px;">Faça login para visualizar o saldo, rentabilidade e gerenciar os seus investimentos.</p>
                     <div>
-                        <button class="btn btn-primary" onclick="app.navegarPara('login')">
+                        <button class="btn btn-primary" onclick="app.navegarPara('login', 'meus-ativos')">
                             <i class="fas fa-sign-in-alt"></i> Fazer Login
                         </button>
                     </div>
@@ -247,6 +269,13 @@
                             <div>
                                 <h3>Rentabilidade</h3>
                                 <p id="dash-rentabilidade" class="text-purple">0,00%</p>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-icon cyan"><i class="fas fa-hand-holding-dollar"></i></div>
+                            <div>
+                                <h3>Saldo p/ Investir</h3>
+                                <p id="dash-saldo-planejamento" class="text-cyan">R$ 0,00</p>
                             </div>
                         </div>
                         <div class="summary-card">
@@ -290,10 +319,21 @@
             </section>
 
             <section id="planejador" class="section">
-                <div class="section-header">
+                <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
                     <div>
                         <h2>Controle de Salário</h2>
                         <p style="font-size: 13.5px; color: var(--text-secondary); margin-top: 3px;">Defina sua renda, divida em porcentagens e acompanhe a execução dos seus gastos e aportes.</p>
+                    </div>
+                    <div id="plan-mes-tracker" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <span id="plan-dias-restantes-badge" class="badge badge-purple" style="font-size: 13px; padding: 7px 14px; font-weight: 600;">
+                            <i class="far fa-calendar-alt"></i> Carregando mês...
+                        </span>
+                        <button class="btn btn-secondary" style="font-size: 13px;" onclick="app.abrirModalHistoricoMeses()">
+                            <i class="fas fa-history"></i> Meses Anteriores
+                        </button>
+                        <button class="btn btn-primary" style="font-size: 13px;" onclick="app.confirmarFecharMes()">
+                            <i class="fas fa-archive"></i> Fechar / Salvar Mês
+                        </button>
                     </div>
                 </div>
 
@@ -302,7 +342,7 @@
                     <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 8px; color: var(--text-primary);">Acesso Restrito ao Planejador</h3>
                     <p style="color: var(--text-secondary); font-size: 13.5px; margin-bottom: 20px; line-height: 1.5;">Faça login para salvar a divisão do seu salário e acompanhar as metas cumpridas do mês.</p>
                     <div>
-                        <button class="btn btn-primary" onclick="app.navegarPara('login')">
+                        <button class="btn btn-primary" onclick="app.navegarPara('login', 'planejador')">
                             <i class="fas fa-sign-in-alt"></i> Fazer Login
                         </button>
                     </div>
@@ -318,17 +358,24 @@
                             </div>
                         </div>
                         <div class="summary-card">
-                            <div class="summary-icon purple"><i class="fas fa-chart-pie"></i></div>
+                            <div class="summary-icon purple"><i class="fas fa-clipboard-list"></i></div>
                             <div>
-                                <h3>Total Alocado</h3>
-                                <p id="plan-total-alocado" class="text-purple">0%</p>
+                                <h3>Total Planejado</h3>
+                                <p id="plan-total-planejado" class="text-purple">R$ 0,00</p>
                             </div>
                         </div>
                         <div class="summary-card">
                             <div class="summary-icon green"><i class="fas fa-check-circle"></i></div>
                             <div>
-                                <h3>Total Executado (Concluído)</h3>
+                                <h3>Total Executado</h3>
                                 <p id="plan-total-executado" class="text-green">R$ 0,00</p>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-icon cyan"><i class="fas fa-wallet"></i></div>
+                            <div>
+                                <h3>Saldo Restante</h3>
+                                <p id="plan-saldo-restante" class="text-cyan">R$ 0,00</p>
                             </div>
                         </div>
                         <div class="summary-card">
@@ -344,15 +391,18 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
                             <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap; flex: 1;">
                                 <div style="display: flex; align-items: center; gap: 8px;">
-                                    <label style="font-weight: 700; font-size: 13.5px; white-space: nowrap; color: var(--text-primary);"><i class="fas fa-wallet" style="color: var(--color-blue); margin-right: 4px;"></i> Salário Mensal (R$):</label>
+                                    <label style="font-weight: 700; font-size: 13.5px; white-space: nowrap; color: var(--text-primary);"><i class="fas fa-wallet" style="color: var(--color-blue); margin-right: 4px;"></i> Salário Mensal:</label>
                                     <input type="number" id="input-salario-mensal" class="form-control" style="max-width: 150px; font-weight: 700; font-size: 14.5px;" placeholder="0,00" step="0.01">
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 8px;">
-                                    <label style="font-weight: 700; font-size: 13.5px; white-space: nowrap; color: var(--text-primary);"><i class="fas fa-hand-holding-dollar" style="color: var(--color-green); margin-right: 4px;"></i> Renda Extra (R$):</label>
+                                    <label style="font-weight: 700; font-size: 13.5px; white-space: nowrap; color: var(--text-primary);"><i class="fas fa-hand-holding-dollar" style="color: var(--color-green); margin-right: 4px;"></i> Renda Extra:</label>
                                     <input type="number" id="input-renda-extra" class="form-control" style="max-width: 150px; font-weight: 700; font-size: 14.5px;" placeholder="0,00" step="0.01">
                                 </div>
                                 <button class="btn btn-primary" onclick="app.atualizarSalarioPlanejamento()">
-                                    <i class="fas fa-save"></i> Atualizar
+                                    <i class="fas fa-save"></i> Salvar
+                                </button>
+                                <button class="btn btn-secondary" style="font-size: 13px;" onclick="app.confirmarZerarRendaExtra()" title="Zerar a renda extra acumulada caso queira reiniciar">
+                                    <i class="fas fa-undo"></i> Zerar Extra
                                 </button>
                             </div>
                             <div id="plan-alert-badge" style="display: flex; align-items: center; gap: 8px;"></div>
@@ -557,6 +607,68 @@
             <div class="form-actions">
                 <button type="button" class="btn btn-secondary" onclick="app.fecharModal('categoria-planejamento')">Cancelar</button>
                 <button type="submit" class="btn btn-primary">Salvar Categoria</button>
+            </div>
+        </form>
+    </div>
+
+    <div id="modal-historico-meses" class="modal modal-lg">
+        <div class="modal-header">
+            <h3><i class="fas fa-history" style="color: var(--color-blue); margin-right: 8px;"></i> Histórico de Meses Anteriores</h3>
+            <button class="btn-close" onclick="app.fecharModal('historico-meses')">&times;</button>
+        </div>
+        <div style="padding: 12px 0;">
+            <p style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 16px;">
+                Acompanhe o fechamento consolidado dos seus meses anteriores, comparando sua renda total, total gasto/aportado e saldo restante.
+            </p>
+            <div id="conteudo-historico-meses">
+                <div class="table-responsive">
+                    <table class="table" id="table-historico-meses">
+                        <thead>
+                            <tr>
+                                <th>Mês / Ano</th>
+                                <th>Renda Total</th>
+                                <th>Planejado</th>
+                                <th>Total Executado</th>
+                                <th>Saldo Restante</th>
+                                <th>Metas</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-historico-meses">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-perfil" class="modal modal-sm">
+        <div class="modal-header">
+            <h3><i class="fas fa-user-shield" style="color: var(--color-blue); margin-right: 8px;"></i> Meu Perfil</h3>
+            <button class="btn-close" onclick="app.fecharModal('perfil')">&times;</button>
+        </div>
+        <form id="form-alterar-senha">
+            <div style="margin-bottom: 16px; background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.15); border-radius: 8px; padding: 10px 12px;">
+                <div style="font-size: 11.5px; color: var(--text-secondary);">Usuário Logado</div>
+                <div id="perfil-nome-display" style="font-weight: 700; font-size: 14px; color: var(--text-primary);">Nome</div>
+                <div id="perfil-email-display" style="font-size: 12px; color: var(--text-secondary);">email@exemplo.com</div>
+            </div>
+            <h4 style="font-size: 13.5px; font-weight: 700; margin-bottom: 12px; color: var(--text-primary);"><i class="fas fa-key" style="margin-right: 4px; color: var(--color-blue);"></i> Alterar Senha</h4>
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label>Senha Atual</label>
+                <input type="password" id="perfil-senha-atual" class="form-control" placeholder="••••••••" required>
+            </div>
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label>Nova Senha</label>
+                <input type="password" id="perfil-nova-senha" class="form-control" placeholder="Mínimo 6 caracteres" minlength="6" required>
+            </div>
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label>Confirmar Nova Senha</label>
+                <input type="password" id="perfil-confirma-senha" class="form-control" placeholder="Repita a nova senha" minlength="6" required>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="app.fecharModal('perfil')">Cancelar</button>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Atualizar Senha</button>
             </div>
         </form>
     </div>

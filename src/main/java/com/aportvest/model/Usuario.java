@@ -34,4 +34,6 @@ public class Usuario {
 
     private Double rendaExtra;
 
+    private String tema;
+
 }

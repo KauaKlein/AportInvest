@@ -30,7 +30,7 @@ public class Aporte {
 
     @NotNull
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 50)
     private TipoInvestimento tipo;
 
     @NotNull
