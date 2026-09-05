@@ -30,4 +30,8 @@ public class Usuario {
 
     private String telefone;
 
+    private Double salario;
+
+    private Double rendaExtra;
+
 }

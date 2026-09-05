@@ -31,6 +31,9 @@
                     <span class="logo-badge"><i class="fas fa-chart-line"></i></span>
                     <span class="logo-text">Aport<span class="logo-accent">vest</span></span>
                 </div>
+                <button class="sidebar-close-btn" onclick="app.fecharMenuLateral()" aria-label="Fechar menu">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
             <nav class="sidebar-nav">
                 <a href="#" class="nav-item active" data-target="home">
@@ -289,16 +292,8 @@
             <section id="planejador" class="section">
                 <div class="section-header">
                     <div>
-                        <h2>Controle de Salário & Aportes</h2>
+                        <h2>Controle de Salário</h2>
                         <p style="font-size: 13.5px; color: var(--text-secondary); margin-top: 3px;">Defina sua renda, divida em porcentagens e acompanhe a execução dos seus gastos e aportes.</p>
-                    </div>
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <button class="btn btn-secondary" id="btn-nova-cat-planejamento" onclick="app.abrirModalNovaCategoriaPlanejamento()">
-                            <i class="fas fa-folder-plus"></i> Nova Categoria (%)
-                        </button>
-                        <button class="btn btn-primary" id="btn-novo-planejamento" onclick="app.abrirModalNovoItemPlanejamento()">
-                            <i class="fas fa-plus"></i> Adicionar Campo / Item
-                        </button>
                     </div>
                 </div>
 
@@ -471,7 +466,7 @@
             <div class="form-grid">
                 <div class="form-group">
                     <label>Nome do Ativo</label>
-                    <input type="text" id="ativo-nome" class="form-control" placeholder="Ex: BBAS3" required>
+                    <input type="text" id="ativo-nome" class="form-control" placeholder="Digite o nome do Ativo" required>
                 </div>
                 <div class="form-group">
                     <label>Tipo</label>
@@ -516,7 +511,7 @@
                 </div>
                 <div class="form-group" style="grid-column: span 2;">
                     <label>Nome do Item</label>
-                    <input type="text" id="plan-item-nome" class="form-control" placeholder="Ex: Geladeira, BBAS3, Aluguel, Mercado" required>
+                    <input type="text" id="plan-item-nome" class="form-control" required>
                 </div>
                 <div class="form-group">
                     <label>Quantidade</label>
@@ -546,18 +541,18 @@
 
     <div id="modal-categoria-planejamento" class="modal modal-sm">
         <div class="modal-header">
-            <h3 id="plan-cat-modal-title">Nova Categoria / Divisão</h3>
+            <h3 id="plan-cat-modal-title">Nova Categoria</h3>
             <button class="btn-close" onclick="app.fecharModal('categoria-planejamento')">&times;</button>
         </div>
         <form id="form-categoria-planejamento">
             <input type="hidden" id="plan-cat-id">
             <div class="form-group" style="margin-bottom: 14px;">
                 <label>Nome da Categoria</label>
-                <input type="text" id="plan-cat-nome" class="form-control" placeholder="Ex: Casa / Moradia, Ações, Cripto, Lazer" required>
+                <input type="text" id="plan-cat-nome" class="form-control" required>
             </div>
             <div class="form-group" style="margin-bottom: 20px;">
-                <label>Porcentagem Alocada da Renda (%)</label>
-                <input type="number" id="plan-cat-percent" class="form-control" placeholder="Ex: 30" min="0.1" max="100" step="0.1" required>
+                <label>Porcentagem Alocada</label>
+                <input type="number" id="plan-cat-percent" class="form-control" min="0.1" max="100" step="0.1" required>
             </div>
             <div class="form-actions">
                 <button type="button" class="btn btn-secondary" onclick="app.fecharModal('categoria-planejamento')">Cancelar</button>

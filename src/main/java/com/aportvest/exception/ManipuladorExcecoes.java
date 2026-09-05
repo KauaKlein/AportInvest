@@ -55,6 +55,17 @@ public class ManipuladorExcecoes {
         return resposta;
     }
 
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Map<String, Object> manipularIntegridadeDados(org.springframework.dao.DataIntegrityViolationException ex) {
+        Map<String, Object> resposta = new HashMap<>();
+        resposta.put("dataHora", LocalDateTime.now());
+        resposta.put("status", HttpStatus.BAD_REQUEST.value());
+        resposta.put("erro", "Registro duplicado");
+        resposta.put("mensagem", "Este e-mail já está cadastrado no sistema. Tente fazer login ou use outro e-mail.");
+        return resposta;
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, Object> manipularArgumentoInvalido(IllegalArgumentException ex) {

@@ -21,6 +21,7 @@ public class UsuarioController {
     @Autowired
     private UsuarioService service;
 
+    // cadastra um usuario
     @PostMapping("/cadastro")
     public ResponseEntity<Usuario> cadastrar(@RequestBody @Valid UsuarioCadastroDTO dto) {
 
@@ -32,6 +33,7 @@ public class UsuarioController {
 
     }
 
+    //
     @PostMapping("/login")
     public ResponseEntity<Usuario> login(@RequestBody @Valid UsuarioLoginDTO dto) {
             Usuario logarUsuario = service.logar(dto);

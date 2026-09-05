@@ -2,24 +2,32 @@ const API_BASE = '/api';
 const formatarMoeda = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
 const formatarPorcentagem = (val) => `${(val || 0) >= 0 ? '+' : ''}${(val || 0).toFixed(2)}%`;
 const CATEGORIAS = {
-    ACOES: { nome: 'Ações', icon: '<i class="fas fa-arrow-trend-up"></i>', cssClass: 'cat-acoes', tipos: ['ACAO', 'BDR'] },
+    ACOES: { nome: 'Ações', icon: '<i class="fas fa-arrow-trend-up"></i>', cssClass: 'cat-acoes', tipos: ['ACAO',] },
     FIIS: { nome: 'FIIs', icon: '<i class="fas fa-building"></i>', cssClass: 'cat-fiis', tipos: ['FII', 'FUNDO_IMOBILIARIO'] },
     CRIPTO: { nome: 'Criptomoedas', icon: '<i class="fab fa-bitcoin"></i>', cssClass: 'cat-cripto', tipos: ['CRIPTO'] },
     ETFS: { nome: 'ETFs Intern.', icon: '<i class="fas fa-layer-group"></i>', cssClass: 'cat-etfs', tipos: ['ETF'] },
-    TESOURO: { nome: 'Tesouro Direto', icon: '<i class="fas fa-landmark"></i>', cssClass: 'cat-tesouro', tipos: ['TESOURO_SELIC', 'TESOURO_PREFIXADO', 'IPCA_PLUS'] },
-    OUTROS: { nome: 'Outros', icon: '<i class="fas fa-wallet"></i>', cssClass: 'cat-outros', tipos: ['RENDA_FIXA', 'CDB', 'LCI_LCA', 'DEBENTURE', 'PREVIDENCIA', 'OUTRO'] }
+    TESOURO: { nome: 'Tesouro Direto', icon: '<i class="fas fa-landmark"></i>', cssClass: 'cat-tesouro', tipos: ['IPCA'] },
+    OUTROS: { nome: 'Outros', icon: '<i class="fas fa-wallet"></i>', cssClass: 'cat-outros', tipos: ['RENDA_FIXA', 'CDB', 'OUTRO'] }
 };
 const TIPO_LABELS = {
-    IPCA_PLUS: 'IPCA+', ACAO: 'Ações', FII: 'FIIs', CRIPTO: 'Criptomoedas',
-    RENDA_FIXA: 'Renda Fixa', TESOURO_SELIC: 'Tesouro Selic',
-    TESOURO_PREFIXADO: 'Tesouro Prefixado', CDB: 'CDB', LCI_LCA: 'LCI/LCA',
-    FUNDO_IMOBILIARIO: 'Fundo Imobiliário', ETF: 'ETF', BDR: 'BDR',
-    DEBENTURE: 'Debênture', PREVIDENCIA: 'Previdência', OUTRO: 'Outro'
+    IPCA: 'IPCA+',
+    ACAO: 'Ações',
+    FII: 'FIIs',
+    CRIPTO: 'Criptomoedas',
+    RENDA_FIXA: 'Renda Fixa',
+    CDB: 'CDB',
+    FUNDO_IMOBILIARIO: 'Fundo Imobiliário',
+
 };
 const CORES_PLANEJAMENTO = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4', '#6366f1', '#14b8a6', '#f97316', '#84cc16'];
 const app = {
     estado: {
         aportes: [],
+        planejamento: {
+            salario: 0,
+            rendaExtra: 0,
+            categorias: []
+        },
         callbackConfirmacao: null,
         usuario: JSON.parse(localStorage.getItem('usuario_logado') || 'null')
     },
@@ -464,65 +472,7 @@ const app = {
             if (navLogin) navLogin.style.display = 'flex';
         }
     },
-    obterChavePlanejamento() {
-        return 'planejamento_' + (this.estado.usuario ? this.estado.usuario.id : 'anon');
-    },
-    obterDadosPlanejamento() {
-        const chave = this.obterChavePlanejamento();
-        const padrao = {
-            salario: 0,
-            rendaExtra: 0,
-            categorias: [
-                {
-                    id: 'cat_casa',
-                    nome: 'Casa / Moradia',
-                    percent: 30,
-                    itens: []
-                },
-                {
-                    id: 'cat_acoes',
-                    nome: 'Ações & FIIs',
-                    percent: 40,
-                    itens: []
-                },
-                {
-                    id: 'cat_cripto',
-                    nome: 'Criptomoedas',
-                    percent: 10,
-                    itens: []
-                },
-                {
-                    id: 'cat_lazer',
-                    nome: 'Lazer & Estilo de Vida',
-                    percent: 20,
-                    itens: []
-                }
-            ]
-        };
-        try {
-            const salvo = localStorage.getItem(chave);
-            if (!salvo) return padrao;
-            const dados = JSON.parse(salvo);
-            if (dados.rendaExtra === undefined) dados.rendaExtra = 0;
-            if (dados.itens && !dados.categorias) {
-                dados.categorias = dados.itens.map(item => ({
-                    id: 'cat_' + (item.id || Date.now() + Math.random()),
-                    nome: item.nome,
-                    percent: item.percent || 0,
-                    itens: []
-                }));
-                delete dados.itens;
-            }
-            if (!dados.categorias) dados.categorias = padrao.categorias;
-            return dados;
-        } catch (e) {
-            return padrao;
-        }
-    },
-    salvarDadosPlanejamento(dados) {
-        localStorage.setItem(this.obterChavePlanejamento(), JSON.stringify(dados));
-    },
-    carregarPlanejador() {
+    async carregarPlanejador() {
         const boxDeslogado = document.getElementById('planejador-deslogado');
         const boxLogado = document.getElementById('planejador-logado');
         const btnNovo = document.getElementById('btn-novo-planejamento');
@@ -538,9 +488,19 @@ const app = {
         if (boxLogado) boxLogado.style.display = 'block';
         if (btnNovo) btnNovo.style.display = 'inline-flex';
         if (btnNovaCat) btnNovaCat.style.display = 'inline-flex';
+
+        try {
+            const dados = await this.chamarAPI(`/planejamento?usuarioId=${this.estado.usuario.id}`);
+            this.estado.planejamento = dados || { salario: 0, rendaExtra: 0, categorias: [] };
+        } catch (erro) {
+            console.error('Erro ao buscar dados do planejador na nuvem:', erro);
+            this.estado.planejamento = { salario: 0, rendaExtra: 0, categorias: [] };
+        }
+
         this.renderizarPlanejamento();
     },
-    atualizarSalarioPlanejamento() {
+    async atualizarSalarioPlanejamento() {
+        if (!this.estado.usuario) return;
         const inputSalario = document.getElementById('input-salario-mensal');
         const inputExtra = document.getElementById('input-renda-extra');
         const novoSalario = parseFloat(inputSalario ? inputSalario.value : 0) || 0;
@@ -550,16 +510,25 @@ const app = {
             this.mostrarAviso('Por favor, informe valores válidos maiores ou iguais a zero.', 'error');
             return;
         }
-        const dados = this.obterDadosPlanejamento();
-        dados.salario = novoSalario;
-        dados.rendaExtra = novaRendaExtra;
-        this.salvarDadosPlanejamento(dados);
-        this.mostrarAviso('Salário e Renda Extra atualizados!', 'success');
-        this.renderizarPlanejamento();
+
+        try {
+            const res = await this.chamarAPI(`/planejamento/rendas?usuarioId=${this.estado.usuario.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({ salario: novoSalario, rendaExtra: novaRendaExtra })
+            });
+            if (res) {
+                this.estado.planejamento.salario = res.salario;
+                this.estado.planejamento.rendaExtra = res.rendaExtra;
+            }
+            this.mostrarAviso('Salário e Renda Extra salvos na nuvem!', 'success');
+            this.renderizarPlanejamento();
+        } catch (erro) {
+            console.error('Erro ao atualizar rendas:', erro);
+        }
     },
     abrirModalNovoItemPlanejamento(categoriaIdPreferencial = null) {
-        const dados = this.obterDadosPlanejamento();
-        if (!dados.categorias || dados.categorias.length === 0) {
+        const categorias = this.estado.planejamento.categorias || [];
+        if (categorias.length === 0) {
             this.mostrarAviso('Adicione primeiro uma categoria para alocar os gastos.', 'info');
             this.abrirModalNovaCategoriaPlanejamento();
             return;
@@ -572,9 +541,9 @@ const app = {
 
         const selCat = document.getElementById('plan-item-categoria');
         selCat.innerHTML = '';
-        dados.categorias.forEach(cat => {
+        categorias.forEach(cat => {
             const opt = new Option(`${cat.nome} (${cat.percent}%)`, cat.id);
-            if (categoriaIdPreferencial && cat.id === categoriaIdPreferencial) {
+            if (categoriaIdPreferencial && String(cat.id) === String(categoriaIdPreferencial)) {
                 opt.selected = true;
             }
             selCat.add(opt);
@@ -584,10 +553,10 @@ const app = {
         this.abrirModal('item-planejamento');
     },
     abrirModalEditarItemPlanejamento(categoriaId, itemId) {
-        const dados = this.obterDadosPlanejamento();
-        const cat = dados.categorias.find(c => c.id === categoriaId);
+        const categorias = this.estado.planejamento.categorias || [];
+        const cat = categorias.find(c => String(c.id) === String(categoriaId));
         if (!cat) return;
-        const item = (cat.itens || []).find(i => i.id === itemId);
+        const item = (cat.itens || []).find(i => String(i.id) === String(itemId));
         if (!item) return;
 
         document.getElementById('plan-item-id').value = `${categoriaId}::${itemId}`;
@@ -599,9 +568,9 @@ const app = {
 
         const selCat = document.getElementById('plan-item-categoria');
         selCat.innerHTML = '';
-        dados.categorias.forEach(c => {
+        categorias.forEach(c => {
             const opt = new Option(`${c.nome} (${c.percent}%)`, c.id);
-            if (c.id === categoriaId) opt.selected = true;
+            if (String(c.id) === String(categoriaId)) opt.selected = true;
             selCat.add(opt);
         });
 
@@ -633,8 +602,9 @@ const app = {
             `;
         }
     },
-    salvarItemPlanejamento(e) {
+    async salvarItemPlanejamento(e) {
         e.preventDefault();
+        if (!this.estado.usuario) return;
         const idFull = document.getElementById('plan-item-id').value;
         const categoriaId = document.getElementById('plan-item-categoria').value;
         const nome = document.getElementById('plan-item-nome').value.trim();
@@ -651,74 +621,58 @@ const app = {
             return;
         }
 
-        const dados = this.obterDadosPlanejamento();
-
+        let itemId = null;
         if (idFull) {
-            const [antigaCatId, itemId] = idFull.split('::');
-            const antigaCat = dados.categorias.find(c => c.id === antigaCatId);
-            if (antigaCat) {
-                const itemIndex = (antigaCat.itens || []).findIndex(i => i.id === itemId);
-                if (itemIndex > -1) {
-                    const itemExistente = antigaCat.itens[itemIndex];
-                    antigaCat.itens.splice(itemIndex, 1);
-                    const novaCat = dados.categorias.find(c => c.id === categoriaId);
-                    if (novaCat) {
-                        if (!novaCat.itens) novaCat.itens = [];
-                        novaCat.itens.push({
-                            ...itemExistente,
-                            nome,
-                            quantidade: qtd,
-                            valor,
-                            parcelas
-                        });
-                    }
-                }
-            }
-            this.mostrarAviso('Item atualizado com sucesso!', 'success');
-        } else {
-            const cat = dados.categorias.find(c => c.id === categoriaId);
-            if (cat) {
-                if (!cat.itens) cat.itens = [];
-                cat.itens.push({
-                    id: Date.now().toString(),
-                    nome,
-                    quantidade: qtd,
-                    valor,
-                    parcelas,
-                    concluido: false
-                });
-                this.mostrarAviso(`"${nome}" adicionado a ${cat.nome}!`, 'success');
-            }
+            const parts = idFull.split('::');
+            itemId = parts[1] ? Number(parts[1]) : null;
         }
 
-        this.salvarDadosPlanejamento(dados);
-        this.fecharModal('item-planejamento');
-        this.renderizarPlanejamento();
+        const payload = {
+            id: itemId,
+            categoriaId: Number(categoriaId),
+            nome: nome,
+            quantidade: qtd,
+            valor: valor,
+            parcelas: parcelas
+        };
+
+        try {
+            await this.chamarAPI(`/planejamento/itens?usuarioId=${this.estado.usuario.id}`, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            this.mostrarAviso(itemId ? 'Item atualizado na nuvem!' : `"${nome}" salvo na nuvem!`, 'success');
+            this.fecharModal('item-planejamento');
+            await this.carregarPlanejador();
+        } catch (erro) {
+            console.error('Erro ao salvar item:', erro);
+        }
     },
-    alternarStatusItemPlanejamento(categoriaId, itemId) {
-        const dados = this.obterDadosPlanejamento();
-        const cat = dados.categorias.find(c => c.id === categoriaId);
-        if (cat) {
-            const item = (cat.itens || []).find(i => i.id === itemId);
-            if (item) {
-                item.concluido = !item.concluido;
-                this.salvarDadosPlanejamento(dados);
-                if (item.concluido) {
-                    this.mostrarAviso(`"${item.nome}" marcado como concluído! 🎯`, 'success');
-                }
-                this.renderizarPlanejamento();
+    async alternarStatusItemPlanejamento(categoriaId, itemId) {
+        if (!this.estado.usuario) return;
+        try {
+            const salvo = await this.chamarAPI(`/planejamento/itens/${itemId}/status?usuarioId=${this.estado.usuario.id}`, {
+                method: 'PATCH'
+            });
+            if (salvo && salvo.concluido) {
+                this.mostrarAviso(`${salvo.nome} salvo com sucesso!`, 'success');
             }
+            await this.carregarPlanejador();
+        } catch (erro) {
+            console.error('Erro ao alternar status do item:', erro);
         }
     },
     removerItemPlanejamento(categoriaId, itemId) {
-        this.confirmarAcao('Deseja excluir este item/gasto?', () => {
-            const dados = this.obterDadosPlanejamento();
-            const cat = dados.categorias.find(c => c.id === categoriaId);
-            if (cat) {
-                cat.itens = (cat.itens || []).filter(i => i.id !== itemId);
-                this.salvarDadosPlanejamento(dados);
-                this.mostrarAviso('Item excluído!', 'info');
-                this.renderizarPlanejamento();
+        if (!this.estado.usuario) return;
+        this.confirmarAcao('Deseja excluir este item/gasto da nuvem?', async () => {
+            try {
+                await this.chamarAPI(`/planejamento/itens/${itemId}?usuarioId=${this.estado.usuario.id}`, {
+                    method: 'DELETE'
+                });
+                this.mostrarAviso('Item excluído da nuvem!', 'info');
+                await this.carregarPlanejador();
+            } catch (erro) {
+                console.error('Erro ao remover item:', erro);
             }
         });
     },
@@ -729,8 +683,7 @@ const app = {
         this.abrirModal('categoria-planejamento');
     },
     abrirModalEditarCategoriaPlanejamento(catId) {
-        const dados = this.obterDadosPlanejamento();
-        const cat = dados.categorias.find(c => c.id === catId);
+        const cat = (this.estado.planejamento.categorias || []).find(c => String(c.id) === String(catId));
         if (!cat) return;
         document.getElementById('plan-cat-id').value = cat.id;
         document.getElementById('plan-cat-nome').value = cat.nome;
@@ -738,8 +691,9 @@ const app = {
         document.getElementById('plan-cat-modal-title').textContent = 'Editar Categoria';
         this.abrirModal('categoria-planejamento');
     },
-    salvarCategoriaPlanejamento(e) {
+    async salvarCategoriaPlanejamento(e) {
         e.preventDefault();
+        if (!this.estado.usuario) return;
         const id = document.getElementById('plan-cat-id').value;
         const nome = document.getElementById('plan-cat-nome').value.trim();
         const percent = parseFloat(document.getElementById('plan-cat-percent').value) || 0;
@@ -753,35 +707,36 @@ const app = {
             return;
         }
 
-        const dados = this.obterDadosPlanejamento();
-        if (id) {
-            const cat = dados.categorias.find(c => c.id === id);
-            if (cat) {
-                cat.nome = nome;
-                cat.percent = percent;
-            }
-            this.mostrarAviso('Categoria atualizada!', 'success');
-        } else {
-            dados.categorias.push({
-                id: 'cat_' + Date.now().toString(),
-                nome: nome,
-                percent: percent,
-                itens: []
-            });
-            this.mostrarAviso('Nova categoria adicionada!', 'success');
-        }
+        const payload = {
+            id: id ? Number(id) : null,
+            nome: nome,
+            percent: percent
+        };
 
-        this.salvarDadosPlanejamento(dados);
-        this.fecharModal('categoria-planejamento');
-        this.renderizarPlanejamento();
+        try {
+            await this.chamarAPI(`/planejamento/categorias?usuarioId=${this.estado.usuario.id}`, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            this.mostrarAviso(id ? 'Categoria atualizada na nuvem!' : 'Nova categoria salva na nuvem!', 'success');
+            this.fecharModal('categoria-planejamento');
+            await this.carregarPlanejador();
+        } catch (erro) {
+            console.error('Erro ao salvar categoria:', erro);
+        }
     },
     removerCategoriaPlanejamento(catId) {
-        this.confirmarAcao('Deseja excluir esta categoria e todos os seus itens?', () => {
-            const dados = this.obterDadosPlanejamento();
-            dados.categorias = dados.categorias.filter(c => c.id !== catId);
-            this.salvarDadosPlanejamento(dados);
-            this.mostrarAviso('Categoria removida!', 'info');
-            this.renderizarPlanejamento();
+        if (!this.estado.usuario) return;
+        this.confirmarAcao('Deseja excluir esta categoria e todos os seus itens da nuvem?', async () => {
+            try {
+                await this.chamarAPI(`/planejamento/categorias/${catId}?usuarioId=${this.estado.usuario.id}`, {
+                    method: 'DELETE'
+                });
+                this.mostrarAviso('Categoria removida da nuvem!', 'info');
+                await this.carregarPlanejador();
+            } catch (erro) {
+                console.error('Erro ao remover categoria:', erro);
+            }
         });
     },
     alternarCategoriaPlanejador(catId) {
@@ -791,7 +746,7 @@ const app = {
         }
     },
     renderizarPlanejamento() {
-        const dados = this.obterDadosPlanejamento();
+        const dados = this.estado.planejamento || { salario: 0, rendaExtra: 0, categorias: [] };
         const salario = parseFloat(dados.salario) || 0;
         const rendaExtra = parseFloat(dados.rendaExtra) || 0;
         const rendaTotal = salario + rendaExtra;
@@ -966,9 +921,6 @@ const app = {
                                     <div><span style="color: var(--text-secondary);">Saldo:</span> <span class="ms-value ${saldoRestante >= 0 ? 'text-green' : 'text-red'}">${formatarMoeda(saldoRestante)}</span></div>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 6px; margin-right: 10px;" onclick="event.stopPropagation()">
-                                    <button class="btn btn-secondary" style="font-size: 11.5px; padding: 4px 10px;" onclick="app.abrirModalNovoItemPlanejamento('${cat.id}')" title="Adicionar Item nesta categoria">
-                                        <i class="fas fa-plus"></i> Item
-                                    </button>
                                     <button class="btn-icon" title="Editar Categoria" onclick="app.abrirModalEditarCategoriaPlanejamento('${cat.id}')"><i class="fas fa-pen"></i></button>
                                     <button class="btn-icon" style="color: var(--color-red);" title="Excluir Categoria" onclick="app.removerCategoriaPlanejamento('${cat.id}')"><i class="fas fa-trash"></i></button>
                                 </div>
@@ -982,7 +934,7 @@ const app = {
                                                 <th style="width: 40px; text-align: center;"><i class="fas fa-check"></i></th>
                                                 <th>Item</th>
                                                 <th>Quant.</th>
-                                                <th>Valor Unit. / Parcela</th>
+                                                <th>Valor Unit.</th>
                                                 <th>Parcelas</th>
                                                 <th>Gasto no Mês</th>
                                                 <th>Ações</th>

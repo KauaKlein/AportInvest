@@ -20,6 +20,7 @@ public class AporteController {
 
     private final AporteService aporteService;
 
+    // busca todos os aportes pelo id do usuario
     @GetMapping
     public ResponseEntity<List<Aporte>> listarTodos(@RequestParam(required = false) Long usuarioId) {
         if (usuarioId != null) {
@@ -28,21 +29,25 @@ public class AporteController {
         return ResponseEntity.ok(List.of());
     }
 
+    // busca um aporte por id
     @GetMapping("/{id}")
     public ResponseEntity<Aporte> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(aporteService.buscarPorId(id));
     }
 
+    // busca aportes por tipo
     @GetMapping("/tipo/{tipo}")
     public ResponseEntity<List<Aporte>> buscarPorTipo(@PathVariable TipoInvestimento tipo) {
         return ResponseEntity.ok(aporteService.buscarPorTipo(tipo));
     }
 
+    // busca aportes pelo nome da corretora
     @GetMapping("/corretora/{corretora}")
     public ResponseEntity<List<Aporte>> buscarPorCorretora(@PathVariable String corretora) {
         return ResponseEntity.ok(aporteService.buscarPorCorretora(corretora));
     }
 
+    // busca por datas
     @GetMapping("/periodo")
     public ResponseEntity<List<Aporte>> buscarPorPeriodo(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
@@ -50,21 +55,25 @@ public class AporteController {
         return ResponseEntity.ok(aporteService.buscarPorPeriodo(inicio, fim));
     }
 
+    // busca aportes pelo nome
     @GetMapping("/busca")
     public ResponseEntity<List<Aporte>> buscarPorNome(@RequestParam String nome) {
         return ResponseEntity.ok(aporteService.buscarPorNome(nome));
     }
 
+    // cadastra um novo aporte
     @PostMapping
     public ResponseEntity<Aporte> criar(@Valid @RequestBody Aporte aporte) {
         return ResponseEntity.status(HttpStatus.CREATED).body(aporteService.salvar(aporte));
     }
 
+    // atualiza o aporte pelo id
     @PutMapping("/{id}")
     public ResponseEntity<Aporte> atualizar(@PathVariable Long id, @Valid @RequestBody Aporte aporte) {
         return ResponseEntity.ok(aporteService.atualizar(id, aporte));
     }
 
+    // deleta um aporte pelo id
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         aporteService.deletar(id);
